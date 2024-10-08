@@ -13,19 +13,19 @@ def _proxy(f):
 
 
 # Constants used to define tolerances for the hybrid integration
-GUARD_TOL = 1e-4  # Tolerance for the guard condition (to detect discrete jumps)
+jump_TOL = 1e-4  # Tolerance for the jump condition (to detect discrete jumps)
 PROGRESS_TOL = 1e-4  # Tolerance for checking progress between event detections
 
 
 # Main hybrid integrator function
 # This function solves the hybrid dynamical system using numerical integration,
 # accounting for both continuous evolution (ordinary differential equation) and discrete jumps
-def hybrid_integrator(f, event, direction, guard, state0, t0, tf):
+def hybrid_integrator(f, event, direction, jump_map, state0, t0, tf):
     """
     f: function representing the continuous dynamics (the ODE)
-    event: function that defines the event triggering discrete transitions (guard function)
+    event: function that defines the event triggering discrete transitions
     direction: the direction of zero crossing (for detecting event condition)
-    guard: function defining how the state changes after an event (discrete dynamics)
+    jump_map: function defining how the state changes after an event (discrete dynamics)
     state0: initial state of the system
     t0: start time of the simulation
     tf: end time of the simulation
@@ -34,7 +34,7 @@ def hybrid_integrator(f, event, direction, guard, state0, t0, tf):
     # Helper function to make a SciPy-compatible event for integration
     def make_scipy_event(event, direction, terminal):
         """
-        event: the event function (guard condition)
+        event: the event function (jump condition)
         direction: the direction in which zero-crossing is detected (positive, negative, or both)
         terminal: if True, stop the integration when the event occurs
         """
@@ -68,9 +68,9 @@ def hybrid_integrator(f, event, direction, guard, state0, t0, tf):
 
         # Check if an event was triggered during this integration step
         if res.status == 1:
-            # If the event was triggered, update the state using the jump_map (guard function)
+            # If the event was triggered, update the state using the jump_map (jump function)
             jump_times.append(res.t_events)  # Record the event (jump) time
-            state = guard(res.y[:, -1])  # Update the state using the guard function after the event
+            state = jump_map(res.y[:, -1])  # Update the state using the jump_map function after the event
 
             # Check for infinite jumping condition (if jumps occur too frequently)
             if len(jump_times) > 2:
