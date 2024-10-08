@@ -5,79 +5,83 @@ import matplotlib.pyplot as plt
 
 # Main execution block
 if __name__ == '__main__':
-    # Initialize a bouncing ball system with a coefficient of restitution (lambda_) of 0.9
-    Ball = BouncingBall(lambda_=0.9)
+    # Initialize the Compass Gait robot system with a slope gamma of 0.05.
+    # The CompassGait represents a simplified bipedal walking model.
+    robot = CompassGait(gamma=0.05)
 
-    # Define the event function to detect collisions (when the ball hits the ground)
-    event = lambda t, state: Ball.collision_witness(state)
-    direction = -1  # Detect the event when the state crosses from positive to negative (falling)
+    # Define the event function to detect when the robot's foot strikes the ground.
+    # The event occurs when the state's relevant component crosses zero.
+    event = lambda t, state: robot.collision_witness(state)
+    direction = -1  # Detect the event when crossing from positive to negative (downward)
 
-    # Initial state: [position, velocity]
-    state = np.array([3, 0], dtype=np.float64)
+    # Initial state of the system: [stance leg angle, swing leg angle, stance leg velocity, swing leg velocity]
+    state = np.array([-0.323389, 0.218669, -0.377377, -1.092386], dtype=np.float64)
 
-    # Simulation parameters: number of time steps, time increment, etc.
-    num_time_steps = 2500
+    # Simulation parameters: number of time steps and time increment (dt).
+    num_time_steps = 4000
     tick = 0
     dt = 0.005
     T = []  # Store total time points
     Y = []  # Store total state results
-    Jump_times = []  # Store times when jumps (collisions) happen
+    Jump_times = []  # Store times when jumps (events) occur
 
-    # Loop over the defined number of time steps
+    # Simulation loop
     for i in range(num_time_steps):
         t0 = tick * dt  # Start time for this step
         tf = (tick + 1) * dt  # End time for this step
-        u = 0  # Control input (not used for the bouncing ball)
+        u = 0  # Control input (not used here for the compass gait)
 
-        # Call the hybrid integrator to simulate the dynamics between t0 and tf
-        t_total, jump_times, y_total, state = hybrid_integrator(lambda t, state: Ball.flow_map(state, u),
+        # Integrate the continuous dynamics and handle discrete jumps
+        t_total, jump_times, y_total, state = hybrid_integrator(lambda t, state: robot.flow_map(state, u),
                                                                 event,
                                                                 direction,
-                                                                Ball.jump_map,
+                                                                robot.jump_map,
                                                                 state,
                                                                 t0,
                                                                 tf)
-        # Advance time step
-        tick += 1
+        tick += 1  # Increment the time step
 
-        # Store time and state results
+        # Store the time and state results from this step
         T.append(t_total)
         Y.append(y_total)
 
-        # Store jump (event) times if they occurred
+        # If a jump (event) occurred, store the jump time
         if jump_times:
             Jump_times.append(jump_times)
 
-    # Convert lists to numpy arrays for easier processing
+    # Convert the lists of time and state results to numpy arrays for easier manipulation
     T = np.concatenate(T)
     Y = np.hstack(Y)
 
-    #### 3D Visualization of the Bouncing Ball
+    #### Enhanced Visualization ####
 
-    fig = plt.figure(figsize=(10, 6))
-    ax = fig.add_subplot(111, projection='3d')
+    # Create a new figure for the plot
+    plt.figure(figsize=(10, 6))
 
-    # Extract time, position, and initialize jump counts
-    t_vals = T
-    pos_vals = Y[0]  # Position of the ball
-    jump_counts = np.zeros_like(t_vals)  # Initialize jump counts to zero
+    # Plot the state of the robot over time.
+    # Y[0] and Y[1] represent the angles of the stance and swing legs, respectively.
+    # Y[2] and Y[3] represent the angular velocities of the stance and swing legs.
 
-    # For each jump event, increment the jump count for subsequent time points
-    for i in range(len(Jump_times)):
-        jump_counts[T > Jump_times[i][0][0]] += 1
+    # Plot the angular positions (stance leg vs. swing leg)
+    plt.subplot(2, 1, 1)  # 2 rows, 1 column, 1st subplot
+    plt.plot(T, Y[0], label="Stance Leg Angle")
+    plt.plot(T, Y[1], label="Swing Leg Angle")
+    plt.xlabel('Time (s)')
+    plt.ylabel('Angle (rad)')
+    plt.title('Angular Positions of Stance and Swing Legs')
+    plt.legend()
 
-    # Plot 3D graph of position over time with jump count
-    ax.plot(t_vals, jump_counts, pos_vals, label="Position over Jumps")
+    # Plot the angular velocities (stance leg vs. swing leg)
+    plt.subplot(2, 1, 2)  # 2 rows, 1 column, 2nd subplot
+    plt.plot(T, Y[2], label="Stance Leg Velocity")
+    plt.plot(T, Y[3], label="Swing Leg Velocity")
+    plt.xlabel('Time (s)')
+    plt.ylabel('Angular Velocity (rad/s)')
+    plt.title('Angular Velocities of Stance and Swing Legs')
+    plt.legend()
 
-    # Add labels and a title to the plot
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel('Jump Count (j)')
-    ax.set_zlabel('Position (x1)')
-    ax.set_title('Bouncing Ball 3D Simulation')
+    # Automatically adjust the subplot layout for better visibility
+    plt.tight_layout()
 
-    # Display the legend and grid for the plot
-    ax.legend()
-    plt.grid(True)
-
-    # Show the 3D plot
+    # Display the plot
     plt.show()

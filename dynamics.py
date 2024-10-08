@@ -35,13 +35,11 @@ class BouncingBall:
 
 
 class CompassGait:
-    def __init__(self, gamma=0.05, state0=[-0.323389, 0.218669, -0.377377, -1.092386]):
+    def __init__(self, gamma=0.05):
         self.leg_length = 1.0
         self.mass_leg = 5.0
         self.mass_hip = 10.0
         self.gravity = 9.81
-        self.state = state0 # initial state (theta1, theta2, dtheta1, dtheta2)
-        # self.time_step = 0.0005
         self.gamma = gamma
 
     def flow_map(self, state, u):
